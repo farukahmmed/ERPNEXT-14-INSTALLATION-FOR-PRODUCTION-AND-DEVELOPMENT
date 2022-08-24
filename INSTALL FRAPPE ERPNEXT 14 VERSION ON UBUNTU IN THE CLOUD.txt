@@ -1,0 +1,183 @@
+INSTALL FRAPPE ERPNEXT 14 VERSION ON UBUNTU IN THE CLOUD
+================================================================
+
+SET YOUR root & ubuntu USER PASSWORD 
+------------------------------------
+su root
+sudo passwd root
+password: Password#321
+
+adduser ubuntu sudo
+sudo passwd ubuntu
+password: Password#321
+
+  DEVELOPMENT SETUP
+--------------------------------
+sudo apt-get clean -y
+sudo apt-get autoremove -y
+sudo apt --fix-broken install -y
+sudo dpkg --configure -a
+sudo apt-get install -f
+sudo apt-get update && sudo apt-get upgrade
+
+  REQUIRED TOOLS
+---------------------------
+sudo apt-get install git python3-dev python3.10-dev python3-setuptools python3-pip python3-distutils redis-server -y
+sudo apt install python3.10-venv -y
+sudo apt-get update -y
+sudo apt-get install xvfb libfontconfig wkhtmltopdf -y
+
+   FIREWALL
+-------------------
+ufw allow 22,25,143,80,443,3306,3022,8000/tcp
+ufw enable
+
+FIREWALL RULES FOR UBUNTU IN OCI IP TABLES:
+-------------------------------------------------
+
+https://developer.oracle.com/tutorials/apache-php-ubuntu-oci-installation/
+The Ubuntu firewall is disabled by default. However, you still need to update your iptablesconfiguration to allow HTTP traffic. Update iptables with the following commands.
+
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 22 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 8000 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 3306 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 3022 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 143 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 25 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
+
+sudo netfilter-persistent save
+
+ MARIADB
+--------------------------
+
+su root
+apt-get install mariadb-server mariadb-client -y
+
+mysql_secure_installation
+Switch to UNIX socket authentication? [Y/n] n
+Change the root password? [Y/n] y
+password: Password#321
+
+Remove anonymous users? [Y/n] y
+Disallow root login remotely? [Y/n] y
+Remove test database and access to it? [Y/n] y
+Reload privilege tables now? [Y/n] y
+
+  Set root password. THIS IS MUST
+----------------------------------
+mysql -u root -p
+USE mysql;
+ALTER USER root@localhost IDENTIFIED VIA mysql_native_password;
+SET PASSWORD = PASSWORD('Password#321');
+
+***GIVE THE PASSWORD AS ABOVE IN mysql_secure_installation SETUP
+---------------------------------------------------------------
+FLUSH PRIVILEGES;
+exit
+sudo nano /etc/mysql/my.cnf
+
+**add these lines @end of the file
+-------------------------------------
+[mysqld]
+character-set-client-handshake = FALSE
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+[mysql]
+default-character-set = utf8mb4
+
+service mysql restart
+sudo reboot
+
+SET YOUR USER PERMISSION HERE:
+------------------------------
+sudo su - ubuntu 
+sudo chmod o+x $HOME
+tee -a ~/.bashrc<<EOF
+PATH=$PATH:~/.local/bin/
+EOF
+source ~/.bashrc
+
+  NODE JS & NPM
+---------------------------
+sudo apt-get install curl
+
+curl -sL https://deb.nodesource.com/setup_16.x  | sudo -E bash -
+sudo apt-get install -y nodejs
+
+  BENCH DIRECTORY
+------------------------
+sudo mkdir /home/bench
+sudo chown -R ubuntu /home/bench
+cd /home/bench
+sudo npm install -g yarn
+
+  FRAPPE
+-------------------
+sudo pip3 install frappe-bench
+
+Dont use other versions or something else
+--------------------------------------------
+bench init frappe --verbose --frappe-branch v14.0.0
+cd frappe
+bench start
+
+OPEN NEW SESSION SITE CREATION:
+-------------------------------
+sudo su - ubuntu
+cd /home/bench/frappe
+bench new-site test.erpnext.local
+admin pass: Password#321
+
+bench use test.erpnext.local
+bench migrate
+
+  INSTALL APP ERPNEXT & VMS
+-----------------------------------------
+bench get-app payments
+-make sure bench is runing in other terminal
+
+bench get-app erpnext --branch v14.0.0
+-make sure bench is runing in other terminal
+
+bench get-app https://github.com/farukahmmed/open_vms.git
+-make sure bench is runing in other terminal
+
+bench --site test.erpnext.local install-app erpnext
+-make sure bench is runing in other terminal
+
+bench --site test.erpnext.local install-app open_vms
+
+bench use test.erpnext.local
+bench migrate
+-make sure bench is runing in other terminal
+
+GO TO [SERVER IP]:8000 SETUP YOUR DEVELOPMENT SYSTEM 
+
+ PRODUCTION SETUP
+----------------------------------------------
+bench --site test.erpnext.local enable-scheduler
+bench --site test.erpnext.local add-to-hosts
+bench --site test.erpnext.local set-maintenance-mode off
+bench --site test.erpnext.local scheduler resume
+
+sudo snap install --classic certbot
+sudo bench setup production ubuntu
+bench setup supervisor
+sudo ln -s /home/bench/frappe/config/supervisor.conf /etc/supervisor/conf.d/frappe.conf 
+sudo bench setup sudoers $(whoami)
+
+ STOP BENCH  (ctrl+c)
+---------------------------------
+sudo service supervisor stop
+sudo service nginx stop
+sudo service supervisor start
+sudo service nginx start
+
+cd /home/bench/frappe
+sudo bench setup production ubuntu
+
+bench --site test.erpnext.local clear-website-cache
+
+
+
