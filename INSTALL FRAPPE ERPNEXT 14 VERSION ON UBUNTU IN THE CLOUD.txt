@@ -43,7 +43,6 @@ sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 8000 -j ACCEPT
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 3306 -j ACCEPT
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 3022 -j ACCEPT
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 143 -j ACCEPT
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 25 -j ACCEPT
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
 
 sudo netfilter-persistent save
@@ -85,6 +84,9 @@ character-set-server = utf8mb4
 collation-server = utf8mb4_unicode_ci
 [mysql]
 default-character-set = utf8mb4
+-------------------------------------
+SAVE AND CLISE NANO
+ctrl +x y
 
 service mysql restart
 sudo reboot
@@ -122,7 +124,7 @@ bench init frappe --verbose --frappe-branch v14.0.0
 cd frappe
 bench start
 
-OPEN NEW SESSION SITE CREATION:
+OPEN NEW SESSION ANOTHER SSH/TERMINAL  SITE CREATION:
 -------------------------------
 sudo su - ubuntu
 cd /home/bench/frappe
